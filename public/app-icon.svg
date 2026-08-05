@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="验证码助手">
+  <defs>
+    <linearGradient id="bg" x1="56" y1="40" x2="456" y2="472" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#171f3b"/>
+      <stop offset="1" stop-color="#080d1c"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="150" y1="132" x2="374" y2="380" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9b91ff"/>
+      <stop offset="0.55" stop-color="#6d5dfc"/>
+      <stop offset="1" stop-color="#43d7e8"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <rect x="24" y="24" width="464" height="464" rx="96" fill="none" stroke="#968cff" stroke-opacity=".22" stroke-width="4"/>
+  <g filter="url(#glow)">
+    <path d="M256 112 388 244 256 376 124 244 256 112Z" fill="url(#mark)" fill-opacity=".18" stroke="url(#mark)" stroke-width="16"/>
+    <rect x="213" y="201" width="86" height="86" rx="24" transform="rotate(45 256 244)" fill="url(#mark)"/>
+  </g>
+  <circle cx="354" cy="354" r="30" fill="#38d89f" stroke="#0b1326" stroke-width="12"/>
+</svg>

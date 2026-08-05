@@ -6,8 +6,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  if (!(await allowRequest(req, "redeem", 8, 10 * 60))) {
-    return apiError("尝试次数过多，请十分钟后再试", 429, "rate_limited");
+  if (!(await allowRequest(req, "redeem", 8, 30))) {
+    return apiError("尝试次数过多，请 30 秒后再试", 429, "rate_limited");
   }
 
   let body: { code?: unknown } = {};

@@ -362,12 +362,27 @@ export default function Home() {
                   <span aria-hidden="true">◆</span>
                   <input
                     id="access-code"
+                    name="manual-access-code"
+                    type="text"
                     value={accessCode}
-                    onChange={(event) => setAccessCode(event.target.value.toUpperCase())}
+                    onChange={(event) => {
+                      const normalized = event.target.value
+                        .toUpperCase()
+                        .replace(/[^A-Z0-9-]/g, "")
+                        .slice(0, 64);
+                      setAccessCode(normalized);
+                    }}
                     placeholder="例如：XY-2026-ABCD"
-                    autoCapitalize="characters"
+                    inputMode="text"
+                    enterKeyHint="go"
+                    autoCapitalize="none"
+                    autoCorrect="off"
                     autoComplete="off"
                     spellCheck={false}
+                    maxLength={64}
+                    data-1p-ignore="true"
+                    data-lpignore="true"
+                    data-form-type="other"
                     disabled={busy}
                   />
                 </div>

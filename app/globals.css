@@ -155,6 +155,15 @@ button:disabled { opacity: .46; cursor: not-allowed; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .channel-card { display: flex; align-items: center; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: rgba(7,12,25,.52); }
+.service-picker { margin-bottom: 14px; }
+.service-picker > span { display: block; margin-bottom: 8px; color: var(--muted); font-size: 10px; font-weight: 700; }
+.service-picker > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.service-option { min-height: 64px; padding: 12px 13px; border: 1px solid var(--line); border-radius: 12px; color: var(--text); text-align: left; background: rgba(7,12,25,.52); cursor: pointer; transition: border-color .15s ease, background .15s ease, transform .15s ease; }
+.service-option:hover:not(:disabled) { transform: translateY(-1px); border-color: rgba(150,140,255,.5); }
+.service-option.active { border-color: var(--primary-light); background: rgba(109,93,252,.13); box-shadow: inset 0 0 0 1px rgba(150,140,255,.14); }
+.service-option b, .service-option small { display: block; }
+.service-option b { font-size: 12px; }
+.service-option small { margin-top: 5px; color: var(--muted); font-size: 9px; }
 .flag-badge { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px; color: #d8dcff; background: linear-gradient(145deg, #233458, #18233e); font-size: 12px; font-weight: 850; }
 .channel-card > div:nth-child(2) { display: flex; flex: 1; flex-direction: column; gap: 4px; }
 .channel-card b { font-size: 13px; }

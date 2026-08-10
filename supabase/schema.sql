@@ -57,6 +57,8 @@ create table if not exists public.sms_orders (
   id uuid primary key default gen_random_uuid(),
   session_id uuid not null references public.user_sessions(id) on delete cascade,
   provider_request_id text not null unique,
+  service text not null default 'chatgpt',
+  application_id text not null default '2754',
   phone text not null,
   cost numeric(12, 4) not null default 0,
   status text not null default 'waiting' check (
@@ -71,6 +73,24 @@ create table if not exists public.sms_orders (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.sms_orders
+  add column if not exists service text not null default 'chatgpt';
+alter table public.sms_orders
+  add column if not exists application_id text not null default '2754';
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'sms_orders_service_check'
+      and conrelid = 'public.sms_orders'::regclass
+  ) then
+    alter table public.sms_orders
+      add constraint sms_orders_service_check check (service in ('chatgpt', 'soulapp'));
+  end if;
+end;
+$$;
 
 create table if not exists public.rate_limits (
   key text primary key,

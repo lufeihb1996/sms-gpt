@@ -6,6 +6,8 @@ export interface StoredOrder {
   id: string;
   session_id: string;
   provider_request_id: string;
+  service: string;
+  application_id: string;
   phone: string;
   cost: string;
   status: string;
@@ -17,6 +19,7 @@ export interface StoredOrder {
 
 export interface PublicOrder {
   id: string;
+  service: string;
   number: string;
   status: string;
   code?: string;
@@ -28,6 +31,7 @@ export interface PublicOrder {
 export function publicOrder(order: StoredOrder): PublicOrder {
   return {
     id: order.id,
+    service: order.service || "chatgpt",
     number: order.phone,
     status: order.status,
     code: order.sms_code || undefined,

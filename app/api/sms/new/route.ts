@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, publicAccess } from "@/lib/auth";
-import { allowRequest, apiError, providerError } from "@/lib/http";
+import { allowRequest, apiError, asString, providerError } from "@/lib/http";
 import { latestOrder, orderTimes, publicOrder, type StoredOrder } from "@/lib/orders";
+import { defaultSmsService, findSmsService } from "@/lib/services";
 import { cancelOrder, getNumber } from "@/lib/smsman";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
@@ -14,6 +15,17 @@ export async function POST(req: NextRequest) {
 
   const session = await getSession();
   if (!session) return apiError("请先输入闲鱼订单卡密", 401, "unauthorized");
+
+  let body: { service?: unknown } = {};
+  try {
+    body = await req.json();
+  } catch {
+    // 兼容未传请求体的旧客户端，默认使用 ChatGPT。
+  }
+  const requestedService = body.service === undefined
+    ? defaultSmsService()
+    : findSmsService(asString(body.service, 32));
+  if (!requestedService) return apiError("暂不支持这个接码服务", 400, "unsupported_service");
 
   try {
     const previous = await latestOrder(session.id);
@@ -42,13 +54,18 @@ export async function POST(req: NextRequest) {
         .eq("session_id", session.id);
     }
 
-    const purchased = await getNumber();
+    const purchased = await getNumber({
+      service: requestedService.description,
+      applicationId: requestedService.applicationId,
+    });
     const times = orderTimes();
     const { data, error } = await getSupabaseAdmin()
       .from("sms_orders")
       .insert({
         session_id: session.id,
         provider_request_id: purchased.id,
+        service: requestedService.id,
+        application_id: requestedService.applicationId,
         phone: purchased.number,
         cost: purchased.cost || "0",
         status: "waiting",

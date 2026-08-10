@@ -338,7 +338,10 @@ export default function Home() {
 
           <div className="trust-row" aria-label="服务特点">
             <div><b>8 秒</b><span>自动查询</span></div>
-            <div><b>10 分钟</b><span>未收码可换号</span></div>
+            <div>
+              <b>{(order?.service || selectedService) === "soulapp" ? "10 分钟" : "3 分钟"}</b>
+              <span>未收码可换号</span>
+            </div>
             <div><b>全程</b><span>订单可追踪</span></div>
           </div>
 

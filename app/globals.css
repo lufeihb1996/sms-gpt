@@ -205,6 +205,8 @@ button:disabled { opacity: .46; cursor: not-allowed; }
 .code-result button strong { display: block; color: #eafff7; font-size: 34px; letter-spacing: .16em; font-variant-numeric: tabular-nums; }
 .code-result button small { display: block; margin-top: 5px; color: #6f8f84; font-size: 9px; }
 .next-button { margin-top: 14px; }
+.service-switch-button { width: 100%; margin-top: 12px; padding: 11px 14px; border: 1px solid rgba(150,140,255,.28); border-radius: 11px; color: #c9c4ff; background: rgba(109,93,252,.07); cursor: pointer; font-size: 10px; font-weight: 750; }
+.service-switch-button:hover:not(:disabled) { border-color: var(--primary-light); background: rgba(109,93,252,.12); }
 
 .replacement-state { margin-top: 14px; padding: 16px; border: 1px solid rgba(255,190,92,.2); border-radius: 14px; background: rgba(255,190,92,.06); }
 .replacement-state p { margin: 0 0 12px; color: #d8ba85; font-size: 11px; line-height: 1.6; }

@@ -227,6 +227,24 @@ export default function Home() {
     }
   }
 
+  async function switchService() {
+    if (!order || !access?.isAdmin) return;
+    setBusy(true);
+    setError("");
+    try {
+      await requestJson("/api/sms/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: order.id }),
+      });
+      setOrder(null);
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function loadAdminCodes() {
     const payload = await requestJson("/api/admin/access-codes");
     setManagedCodes(payload.codes || []);
@@ -588,6 +606,12 @@ export default function Home() {
                 {order.code && access && access.remainingSuccesses > 0 && (
                   <button className="primary-button next-button" onClick={acquireNumber} disabled={busy}>
                     继续下一次验证
+                  </button>
+                )}
+
+                {access?.isAdmin && ["waiting", "replacement_pending"].includes(order.status) && (
+                  <button className="service-switch-button" onClick={switchService} disabled={busy}>
+                    {busy ? "正在结束当前订单…" : "结束当前订单并切换服务"}
                   </button>
                 )}
 

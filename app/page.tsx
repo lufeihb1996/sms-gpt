@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { SMS_SERVICE_OPTIONS, type SmsServiceKey } from "@/lib/services";
 
 interface AccessInfo {
   isAdmin: boolean;
@@ -28,6 +29,7 @@ interface ManagedAccessCode {
 
 interface OrderInfo {
   id: string;
+  service: SmsServiceKey;
   number: string;
   status: string;
   code?: string;
@@ -79,6 +81,7 @@ export default function Home() {
   const [accessCode, setAccessCode] = useState("");
   const [access, setAccess] = useState<AccessInfo | null>(null);
   const [order, setOrder] = useState<OrderInfo | null>(null);
+  const [selectedService, setSelectedService] = useState<SmsServiceKey>("chatgpt");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState("");
@@ -98,7 +101,10 @@ export default function Home() {
       setAccess(payload.access);
       if (!payload.access.isAdmin) setAdminOpen(false);
     }
-    if (payload.order !== undefined) setOrder(payload.order);
+    if (payload.order !== undefined) {
+      setOrder(payload.order);
+      if (payload.order?.service) setSelectedService(payload.order.service);
+    }
   }, []);
 
   const loadSession = useCallback(async () => {
@@ -190,7 +196,11 @@ export default function Home() {
     setBusy(true);
     setError("");
     try {
-      const payload = await requestJson("/api/sms/new", { method: "POST" });
+      const payload = await requestJson("/api/sms/new", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ service: selectedService }),
+      });
       applyPayload(payload);
     } catch (reason) {
       setError((reason as Error).message);
@@ -470,9 +480,31 @@ export default function Home() {
               </div>
             ) : !order ? (
               <div className="empty-state">
+                <div className="service-picker" role="radiogroup" aria-label="选择接码服务">
+                  <span>选择接码服务</span>
+                  <div>
+                    {SMS_SERVICE_OPTIONS.map((service) => (
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={selectedService === service.id}
+                        className={selectedService === service.id ? "service-option active" : "service-option"}
+                        onClick={() => setSelectedService(service.id)}
+                        disabled={busy}
+                        key={service.id}
+                      >
+                        <b>{service.label}</b>
+                        <small>{service.description}</small>
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="channel-card">
                   <div className="flag-badge">US</div>
-                  <div><b>美国验证号码</b><span>适用于当前服务</span></div>
+                  <div>
+                    <b>美国验证号码</b>
+                    <span>用于 {SMS_SERVICE_OPTIONS.find((service) => service.id === selectedService)?.label}</span>
+                  </div>
                   <span className="stock"><i /> 通道正常</span>
                 </div>
                 <button className="primary-button" onClick={acquireNumber} disabled={busy || !access?.remainingSuccesses}>
@@ -498,7 +530,9 @@ export default function Home() {
                 </div>
 
                 <div className="number-panel">
-                  <span>你的美国号码</span>
+                  <span>
+                    {SMS_SERVICE_OPTIONS.find((service) => service.id === order.service)?.label || "当前服务"} · 你的美国号码
+                  </span>
                   <div>
                     <strong>{formatPhone(order.number)}</strong>
                     <button onClick={() => copy(order.number.startsWith("+") ? order.number : `+${order.number}`, "phone")}>

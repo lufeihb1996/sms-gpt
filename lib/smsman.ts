@@ -157,7 +157,7 @@ async function resolveApplicationId(serviceArg?: string): Promise<string> {
 
 /** 下单获取一个新号码(固定美区、ChatGPT/OpenAI 服务) */
 export async function getNumber(
-  overrides: { country?: string; service?: string; maxPrice?: string } = {}
+  overrides: { country?: string; service?: string; applicationId?: string; maxPrice?: string } = {}
 ): Promise<NumberOrder> {
   const countryId = await resolveCountryId(overrides.country);
   if (!countryId) {
@@ -165,7 +165,7 @@ export async function getNumber(
       "未能自动解析美国 country_id,请在 .env.local 中设置 SMSMAN_COUNTRY_ID(可通过 /control/countries 查询)"
     );
   }
-  const applicationId = await resolveApplicationId(overrides.service);
+  const applicationId = overrides.applicationId || await resolveApplicationId(overrides.service);
   if (!applicationId) {
     throw new SmsmanError(
       "未能自动解析 OpenAI/ChatGPT 的 application_id,请在 .env.local 中设置 SMSMAN_APPLICATION_ID(可通过 /control/applications 查询)"

@@ -7,8 +7,11 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
-async function buyReplacement(sessionId: string, oldOrderId: string) {
-  const purchased = await getNumber();
+async function buyReplacement(sessionId: string, oldOrder: StoredOrder) {
+  const purchased = await getNumber({
+    service: oldOrder.service,
+    applicationId: oldOrder.application_id,
+  });
   const times = orderTimes();
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -16,6 +19,8 @@ async function buyReplacement(sessionId: string, oldOrderId: string) {
     .insert({
       session_id: sessionId,
       provider_request_id: purchased.id,
+      service: oldOrder.service,
+      application_id: oldOrder.application_id,
       phone: purchased.number,
       cost: purchased.cost || "0",
       status: "waiting",
@@ -33,7 +38,7 @@ async function buyReplacement(sessionId: string, oldOrderId: string) {
   await supabase
     .from("sms_orders")
     .update({ status: "closed", updated_at: new Date().toISOString() })
-    .eq("id", oldOrderId)
+    .eq("id", oldOrder.id)
     .in("status", ["swapping", "replacement_pending"]);
 
   return data as StoredOrder;
@@ -61,7 +66,7 @@ export async function POST(req: NextRequest) {
     if (!order) return apiError("没有找到这个订单", 404, "order_not_found");
 
     if (order.status === "replacement_pending") {
-      const replacement = await buyReplacement(session.id, order.id);
+      const replacement = await buyReplacement(session.id, order);
       return NextResponse.json({
         ok: true,
         order: publicOrder(replacement),
@@ -112,7 +117,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      const replacement = await buyReplacement(session.id, order.id);
+      const replacement = await buyReplacement(session.id, order);
       const freshSession = await getSession();
       return NextResponse.json({
         ok: true,

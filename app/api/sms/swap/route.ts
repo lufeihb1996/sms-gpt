@@ -12,7 +12,7 @@ async function buyReplacement(sessionId: string, oldOrder: StoredOrder) {
     service: oldOrder.service,
     applicationId: oldOrder.application_id,
   });
-  const times = orderTimes();
+  const times = orderTimes(oldOrder.service);
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("sms_orders")

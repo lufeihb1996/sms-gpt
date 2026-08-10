@@ -66,12 +66,22 @@ export async function findOrder(sessionId: string, orderId: string): Promise<Sto
   return data as StoredOrder | null;
 }
 
-export function orderTimes() {
-  // SMS-Man keeps disposable activations alive for roughly 10 minutes and can
-  // reject an earlier release with `early_cancel_denied`. Keep our countdown
-  // aligned with the provider so the UI does not promise a swap too early.
-  const swapSeconds = Math.max(600, Number(process.env.SMS_SWAP_WAIT_SECONDS || 600));
-  const ttlSeconds = Math.max(swapSeconds, Number(process.env.SMS_ORDER_TTL_SECONDS || 600));
+export function orderTimes(service = "chatgpt") {
+  const isSoulApp = service.toLowerCase() === "soulapp";
+  const suffix = isSoulApp ? "SOULAPP" : "CHATGPT";
+  const defaultSeconds = isSoulApp ? 600 : 180;
+  const configuredSwap = Number(
+    process.env[`SMS_SWAP_WAIT_SECONDS_${suffix}`] ||
+    process.env.SMS_SWAP_WAIT_SECONDS ||
+    defaultSeconds
+  );
+  const swapSeconds = Math.max(60, Number.isFinite(configuredSwap) ? configuredSwap : defaultSeconds);
+  const configuredTtl = Number(
+    process.env[`SMS_ORDER_TTL_SECONDS_${suffix}`] ||
+    process.env.SMS_ORDER_TTL_SECONDS ||
+    swapSeconds
+  );
+  const ttlSeconds = Math.max(swapSeconds, Number.isFinite(configuredTtl) ? configuredTtl : swapSeconds);
   const now = Date.now();
   return {
     canSwapAt: new Date(now + swapSeconds * 1000).toISOString(),

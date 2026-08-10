@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       service: requestedService.description,
       applicationId: requestedService.applicationId,
     });
-    const times = orderTimes();
+    const times = orderTimes(requestedService.id);
     const { data, error } = await getSupabaseAdmin()
       .from("sms_orders")
       .insert({

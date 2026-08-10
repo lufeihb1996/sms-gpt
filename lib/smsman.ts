@@ -40,6 +40,11 @@ export interface SmsResult {
   status: string;
 }
 
+// SMS-Man returns one of these after an activation has already expired or was
+// released. For cleanup/swap purposes that is a successful terminal outcome,
+// not a provider failure.
+const RELEASED_ORDER_CODES = ["no_activation", "request_not_found", "wrong_request"];
+
 /** 统一错误,携带 sms-man 返回的 error_code */
 export class SmsmanError extends Error {
   code: string;
@@ -198,7 +203,7 @@ export async function getNumber(
 
 /** 读取验证码;若短信未到则返回不带 code 的 waiting_code 状态 */
 export async function getSms(id: string): Promise<SmsResult> {
-  const json = await api("/get-sms", { request_id: id }, ["wait_sms"]);
+  const json = await api("/get-sms", { request_id: id }, ["wait_sms", ...RELEASED_ORDER_CODES]);
   if (json.error_code) {
     return { status: json.error_code === "wait_sms" ? "waiting_code" : String(json.error_code) };
   }
@@ -211,7 +216,7 @@ export async function getSms(id: string): Promise<SmsResult> {
 
 /** 查询验证码/是否已到(新接口没有独立查单接口,复用 get-sms) */
 export async function getStatus(id: string): Promise<SmsResult> {
-  const json = await api("/get-sms", { request_id: id }, ["wait_sms"]);
+  const json = await api("/get-sms", { request_id: id }, ["wait_sms", ...RELEASED_ORDER_CODES]);
   if (json.error_code) {
     return { status: json.error_code === "wait_sms" ? "waiting_code" : String(json.error_code) };
   }
@@ -224,14 +229,14 @@ export async function getStatus(id: string): Promise<SmsResult> {
 
 /** 取消 / 释放号码(未收到短信可退回):set-status = close */
 export async function cancelOrder(id: string): Promise<{ status: string }> {
-  await api("/set-status", { request_id: id, status: "close" });
-  return { status: "cancel" };
+  const json = await api("/set-status", { request_id: id, status: "close" }, RELEASED_ORDER_CODES);
+  return { status: json.error_code ? String(json.error_code) : "cancel" };
 }
 
 /** 拒绝当前无效号码，用于换号；与普通关闭订单的 close 分开。 */
 export async function rejectOrder(id: string): Promise<{ status: string }> {
-  await api("/set-status", { request_id: id, status: "reject" });
-  return { status: "reject" };
+  const json = await api("/set-status", { request_id: id, status: "reject" }, RELEASED_ORDER_CODES);
+  return { status: json.error_code ? String(json.error_code) : "reject" };
 }
 
 /** 标记号码已成功使用,供应商可据此结束订单。 */

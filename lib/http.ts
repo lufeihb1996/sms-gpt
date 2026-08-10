@@ -45,10 +45,11 @@ export function providerError(error: unknown) {
     wrong_max_price: "当前通道价格发生变化，请联系卖家处理",
     wait_sms: "验证码仍在路上，请继续等待",
     timeout: "号码通道响应超时，请稍后重试",
-    early_cancel_denied: "号码暂时不能更换，请等待一分钟后再试",
-    early_reject_denied: "号码暂时不能更换，请等待一分钟后再试",
+    early_cancel_denied: "SMS-Man 尚未允许释放此号码，请等满 10 分钟后再试",
+    early_reject_denied: "SMS-Man 尚未允许释放此号码，请等满 10 分钟后再试",
     no_activation: "原号码订单已失效，请刷新页面或联系卖家",
     request_not_found: "原号码订单已失效，请刷新页面或联系卖家",
+    wrong_request: "原号码已由 SMS-Man 自动释放，请重新获取号码",
   };
 
   return apiError(friendly[code] || "号码通道暂时繁忙，请稍后重试", 502, code);

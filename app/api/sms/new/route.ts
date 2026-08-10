@@ -38,7 +38,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (previous && !["received", "completed"].includes(previous.status)) {
+    const adminCanRestart = session.access.role === "admin" &&
+      previous && ["cancelled", "expired", "closed", "failed"].includes(previous.status);
+    if (previous && !["received", "completed"].includes(previous.status) && !adminCanRestart) {
       return apiError("当前服务需要从原订单继续处理，请联系卖家", 409, "order_interrupted");
     }
 

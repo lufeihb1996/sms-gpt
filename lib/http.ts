@@ -43,6 +43,7 @@ export function providerError(error: unknown) {
     no_balance: "服务暂时不可用，请联系卖家处理",
     low_balance: "服务暂时不可用，请联系卖家处理",
     wrong_max_price: "当前通道价格发生变化，请联系卖家处理",
+    wrong_country: "号码通道返回了非美国号码，已自动释放，请重新获取",
     wait_sms: "验证码仍在路上，请继续等待",
     timeout: "号码通道响应超时，请稍后重试",
     early_cancel_denied: "SMS-Man 尚未允许释放此号码，请稍后再试",

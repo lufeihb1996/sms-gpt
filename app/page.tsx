@@ -550,6 +550,7 @@ export default function Home() {
                   <small>订单 {order.id.slice(0, 8).toUpperCase()}</small>
                 </div>
 
+                {!['replacement_pending', 'expired', 'closed', 'cancelled', 'failed'].includes(order.status) && (
                 <div className="number-panel">
                   <span>
                     {SMS_SERVICE_OPTIONS.find((service) => service.id === order.service)?.label || "当前服务"} · 你的美国号码
@@ -561,6 +562,7 @@ export default function Home() {
                     </button>
                   </div>
                 </div>
+                )}
 
                 {order.code ? (
                   <div className="code-result">

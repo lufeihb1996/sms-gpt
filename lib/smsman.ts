@@ -11,16 +11,19 @@
  *
  * 说明:
  * - 新接口的国家 / 服务都是「整数 id」(country_id / application_id),不再用
- *   "US" / "ch" 这种字符串。本客户端默认会自动调用 countries / applications
- *   接口解析出美国与 OpenAI 的 id;你也可以用环境变量 SMSMAN_COUNTRY_ID /
- *   SMSMAN_APPLICATION_ID 直接指定,避免每次解析。
+ *   "US" / "ch" 这种字符串。本客户端固定使用 SMS-Man 官方的美国 country_id=5，
+ *   服务 application_id 由业务服务配置指定。
  */
 
-const BASE_URL = (process.env.SMSMAN_API_BASE || "https://api.sms-man.com").replace(/\/+$/, "");
+// This product is intentionally tied to SMS-Man's official API. Do not allow a
+// deployment variable to silently redirect credentials or number purchases.
+const BASE_URL = "https://api.sms-man.com";
 const TOKEN = process.env.SMSMAN_API_TOKEN || "";
 
 // 可直接用整数 id 覆盖;留空则自动查询解析
-const COUNTRY_ID = process.env.SMSMAN_COUNTRY_ID || "";
+// SMS-Man documents country_id=5 as USA. The UI promises US numbers, so this
+// value must not be overridden independently in Vercel.
+const USA_COUNTRY_ID = "5";
 const APPLICATION_ID = process.env.SMSMAN_APPLICATION_ID || "";
 
 const COUNTRY = process.env.SMSMAN_COUNTRY || "US"; // 国家名/别名,用于自动解析
@@ -44,6 +47,7 @@ export interface SmsResult {
 // released. For cleanup/swap purposes that is a successful terminal outcome,
 // not a provider failure.
 const RELEASED_ORDER_CODES = ["no_activation", "request_not_found", "wrong_request"];
+const NUMBER_RETRY_DELAYS_MS = [0, 1200, 2500, 4000];
 
 /** 统一错误,携带 sms-man 返回的 error_code */
 export class SmsmanError extends Error {
@@ -107,10 +111,7 @@ async function api(
 
 /* ---------- 国家 / 服务 id 自动解析(模块级缓存) ---------- */
 
-let cachedCountryId: string | null | undefined;
 let cachedApplicationId: string | null | undefined;
-
-const US_ALIASES = ["united states", "usa", "america", "u.s. states"];
 
 /** 兼容接口返回两种格式:数组或按 id 为 key 的对象字典 */
 function toArray<T>(raw: Json): T[] {
@@ -118,23 +119,9 @@ function toArray<T>(raw: Json): T[] {
   return Object.values((raw || {}) as Record<string, T>);
 }
 
-/** 解析美国 country_id;可直接环境变量覆盖 */
-async function resolveCountryId(countryArg?: string): Promise<string> {
-  if (COUNTRY_ID) return COUNTRY_ID;
-  if (cachedCountryId !== undefined) return cachedCountryId ?? "";
-  cachedCountryId = null;
-  try {
-    const list = toArray<{ id?: number | string; title?: string }>(await api("/countries", {}));
-    const target = (countryArg || COUNTRY).toLowerCase();
-    const hit = list.find((c) => {
-      const t = (c.title || "").toLowerCase();
-      return t === target || US_ALIASES.some((a) => t.includes(a) || target.includes(a));
-    });
-    if (hit && hit.id != null) cachedCountryId = String(hit.id);
-  } catch {
-    /* 解析失败时交给下单处提示 */
-  }
-  return cachedCountryId ?? "";
+/** 解析美国 country_id；本产品固定提供美国号码。 */
+async function resolveCountryId(): Promise<string> {
+  return USA_COUNTRY_ID;
 }
 
 /** 解析 OpenAI/ChatGPT application_id;可直接环境变量覆盖 */
@@ -164,11 +151,9 @@ async function resolveApplicationId(serviceArg?: string): Promise<string> {
 export async function getNumber(
   overrides: { country?: string; service?: string; applicationId?: string; maxPrice?: string } = {}
 ): Promise<NumberOrder> {
-  const countryId = await resolveCountryId(overrides.country);
+  const countryId = await resolveCountryId();
   if (!countryId) {
-    throw new SmsmanError(
-      "未能自动解析美国 country_id,请在 .env.local 中设置 SMSMAN_COUNTRY_ID(可通过 /control/countries 查询)"
-    );
+    throw new SmsmanError("SMS-Man 美国 country_id 配置缺失", "missing_country");
   }
   const applicationId = overrides.applicationId || await resolveApplicationId(overrides.service);
   if (!applicationId) {
@@ -187,11 +172,35 @@ export async function getNumber(
     params.currency = CURRENCY;
   }
 
-  const json = await api("/get-number", params);
+  let json: Json;
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      json = await api("/get-number", params);
+      break;
+    } catch (error) {
+      const retryDelay = NUMBER_RETRY_DELAYS_MS[attempt + 1];
+      if (!(error instanceof SmsmanError) || error.code !== "no_numbers" || retryDelay === undefined) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+    }
+  }
   const id = json.request_id;
   const number = json.number;
   if (id == null || !number) {
     throw new SmsmanError("sms-man 未返回号码,请检查余额 / 国家或服务是否可用");
+  }
+
+  const returnedCountryId = json.country_id == null ? "" : String(json.country_id);
+  const normalizedNumber = String(number).replace(/\D/g, "");
+  const looksLikeUsNumber = /^(?:1)?[2-9]\d{9}$/.test(normalizedNumber);
+  if ((returnedCountryId && returnedCountryId !== USA_COUNTRY_ID) || !looksLikeUsNumber) {
+    await api(
+      "/set-status",
+      { request_id: String(id), status: "close" },
+      RELEASED_ORDER_CODES
+    ).catch(() => undefined);
+    throw new SmsmanError("SMS-Man returned a non-US number", "wrong_country");
   }
   return {
     id: String(id),
